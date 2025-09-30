@@ -1,0 +1,19 @@
+# Optional: If you want to run the app with Node.js instead of static files
+# This is useful for development or if you need server-side features
+
+[Unit]
+Description=Smart Abhyas Application
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/smart-abhyas
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
