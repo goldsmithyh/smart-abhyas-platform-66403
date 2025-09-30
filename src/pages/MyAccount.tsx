@@ -117,8 +117,8 @@ const MyAccount = () => {
         throw new Error('No downloads found for this email address. Please use the email you used to download papers.');
       }
 
-      // Call edge function to send verification email
-      const { data, error } = await supabase.functions.invoke('send-verification-email', {
+      // Call edge function to send verification email via Brevo
+      const { data, error } = await supabase.functions.invoke('send-brevo-verification', {
         body: { email: userEmail.trim() }
       });
 
