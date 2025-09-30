@@ -97,32 +97,46 @@ const MyAccount = () => {
       return;
     }
 
-    console.log('Sending verification OTP to:', userEmail.trim());
+    console.log('Sending verification code to:', userEmail.trim());
     setIsSendingCode(true);
     
     try {
-      // Use Supabase Auth's built-in OTP functionality
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: userEmail.trim(),
-        options: {
-          shouldCreateUser: false, // Don't create user if they don't exist
-          emailRedirectTo: `${window.location.origin}/my-account`
-        }
+      // Check if user has downloaded anything before
+      const { data: downloadData, error: downloadError } = await supabase
+        .from('download_logs')
+        .select('user_email')
+        .eq('user_email', userEmail.trim())
+        .limit(1);
+
+      if (downloadError) {
+        console.error('Error checking downloads:', downloadError);
+        throw new Error('Failed to verify email. Please try again.');
+      }
+
+      if (!downloadData || downloadData.length === 0) {
+        throw new Error('No downloads found for this email address. Please use the email you used to download papers.');
+      }
+
+      // Call edge function to send verification email
+      const { data, error } = await supabase.functions.invoke('send-verification-email', {
+        body: { email: userEmail.trim() }
       });
 
       if (error) {
-        console.error('Supabase auth OTP error:', error);
-        if (error.message.includes('User not found')) {
-          throw new Error('No account found with this email address');
-        }
-        throw new Error(error.message);
+        console.error('Error calling send-verification-email:', error);
+        throw new Error('Failed to send verification code. Please try again.');
       }
 
-      console.log('OTP sent successfully via Supabase Auth');
-      setIsVerificationSent(true);
-      toast.success('Verification code sent to your email via Smart Abhyas!');
+      console.log('Verification email response:', data);
+      
+      if (data?.success) {
+        setIsVerificationSent(true);
+        toast.success('Verification code sent to your email! Check your inbox.');
+      } else {
+        throw new Error(data?.error || 'Failed to send verification code');
+      }
     } catch (error: any) {
-      console.error('Error sending OTP:', error);
+      console.error('Error sending verification code:', error);
       toast.error(error.message || 'Failed to send verification code. Please try again.');
     } finally {
       setIsSendingCode(false);
@@ -139,24 +153,32 @@ const MyAccount = () => {
 
     setIsVerifyingCode(true);
     try {
-      // Verify the OTP code using Supabase Auth
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: userEmail.trim(),
-        token: verificationCode.trim(),
-        type: 'email'
+      // Call edge function to verify the code
+      const { data, error } = await supabase.functions.invoke('verify-email-code', {
+        body: { 
+          email: userEmail.trim(),
+          code: verificationCode.trim()
+        }
       });
 
-      if (error || !data?.user) {
-        throw new Error('Invalid or expired verification code');
+      if (error) {
+        console.error('Error calling verify-email-code:', error);
+        throw new Error('Failed to verify code. Please try again.');
       }
 
-      setIsEmailVerified(true);
-      toast.success('Email verified successfully via Smart Abhyas!');
-      
-      // Now fetch the download logs
-      fetchDownloadLogs(userEmail);
+      console.log('Verification response:', data);
+
+      if (data?.success) {
+        setIsEmailVerified(true);
+        toast.success('Email verified successfully!');
+        
+        // Now fetch the download logs
+        fetchDownloadLogs(userEmail);
+      } else {
+        throw new Error(data?.error || 'Invalid or expired verification code');
+      }
     } catch (error: any) {
-      console.error('Error verifying OTP:', error);
+      console.error('Error verifying code:', error);
       toast.error(error.message || 'Invalid or expired verification code');
     } finally {
       setIsVerifyingCode(false);
@@ -220,7 +242,7 @@ const MyAccount = () => {
             <div className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium mb-2">
-                  Enter your email to verify access via Smart Abhyas:
+                  Enter the email you used to download papers:
                 </label>
                 <Input
                   id="email"
@@ -259,7 +281,7 @@ const MyAccount = () => {
                   Code sent to: {userEmail}
                 </p>
                 <p className="text-sm text-orange-600 mt-1">
-                  ⏰ Code expires in 5 minutes
+                  ⏰ Code expires in 10 minutes
                 </p>
               </div>
               <div className="flex gap-2">
