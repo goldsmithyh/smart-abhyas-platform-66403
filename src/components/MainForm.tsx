@@ -248,16 +248,19 @@ const MainForm = () => {
 
       // Proceed with download
       await processDownloads();
+
+      // Send PDFs via email
+      await sendPDFsToEmail();
       
       toast({
         title: "Payment Successful!",
-        description: "Your payment was successful. Downloads will start now.",
+        description: "PDFs downloaded and sent to your email.",
       });
     } catch (error) {
       console.error('Error processing payment success:', error);
       toast({
         title: "Error",
-        description: "Payment successful but download failed. Please contact support.",
+        description: "Payment successful but there was an issue. Please contact support.",
         variant: "destructive"
       });
     }
@@ -270,6 +273,57 @@ const MainForm = () => {
       description: "Your payment could not be processed. Please try again.",
       variant: "destructive"
     });
+  };
+
+  const sendPDFsToEmail = async () => {
+    if (!selectedSubject.length) return;
+    
+    // Send each PDF via email
+    for (const subject of selectedSubject) {
+      const { data: papers, error } = await supabase
+        .from('papers')
+        .select('*')
+        .eq('standard', selectedClass)
+        .eq('exam_type', selectedExam)
+        .eq('paper_type', paperType)
+        .eq('subject', subject)
+        .eq('is_active', true)
+        .order('display_order')
+        .limit(1);
+
+      if (error || !papers || papers.length === 0) {
+        console.error('Error fetching paper for email:', subject, error);
+        continue;
+      }
+
+      const paper = papers[0] as DatabasePaper;
+      
+      // Get exam type name for display
+      const examTypeData = examTypes.find(e => e.id === selectedExam);
+      const examTypeName = examTypeData?.name || selectedExam;
+
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-pdf-email', {
+          body: {
+            userEmail: formData.email,
+            userName: formData.fullName,
+            schoolName: formData.schoolName,
+            pdfUrl: paper.file_url,
+            pdfFileName: paper.file_name,
+            subject: paper.subject,
+            standard: selectedClass,
+            examType: examTypeName,
+            paperType: paperType
+          }
+        });
+
+        if (emailError) {
+          console.error('Error sending email for subject:', subject, emailError);
+        }
+      } catch (err) {
+        console.error('Failed to send email for subject:', subject, err);
+      }
+    }
   };
 
   const processDownloads = async () => {
