@@ -1,1 +1,16 @@
 project_id = "pavwfdozwjomlfplxdbz"
+
+[functions.send-brevo-verification]
+verify_jwt = false
+
+[functions.verify-email-code]
+verify_jwt = false
+
+[functions.send-mailjet-verification]
+verify_jwt = false
+
+[functions.create-razorpay-order]
+verify_jwt = false
+
+[functions.send-pdf-email]
+verify_jwt = false
