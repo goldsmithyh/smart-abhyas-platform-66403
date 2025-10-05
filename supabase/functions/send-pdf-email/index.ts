@@ -20,7 +20,8 @@ serve(async (req) => {
       subject,
       standard,
       examType,
-      paperType 
+      paperType,
+      adminEmail 
     } = await req.json();
 
     console.log('Sending PDF email to:', userEmail);
@@ -56,7 +57,11 @@ serve(async (req) => {
           {
             email: userEmail,
             name: userName || 'Student'
-          }
+          },
+          ...(adminEmail ? [{
+            email: adminEmail,
+            name: 'Smart Abhyas Admin'
+          }] : [])
         ],
         subject: `Your ${paperType === 'question' ? 'Question' : 'Answer'} Paper - ${subject}`,
         htmlContent: `

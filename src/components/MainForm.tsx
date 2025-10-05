@@ -313,7 +313,8 @@ const MainForm = () => {
             subject: paper.subject,
             standard: selectedClass,
             examType: examTypeName,
-            paperType: paperType
+            paperType: paperType,
+            adminEmail: 'admin@smartabhyas.com' // Change this to your business email
           }
         });
 
