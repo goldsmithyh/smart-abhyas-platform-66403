@@ -1,4 +1,4 @@
-project_id = "pavwfdozwjomlfplxdbz"
+project_id = "jqsoghzinoorlbbvwufy"
 
 [functions.send-brevo-verification]
 verify_jwt = false
