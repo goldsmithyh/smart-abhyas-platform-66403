@@ -227,7 +227,7 @@ export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
     }))
 
     const modifiedPdfBytes = await pdfDoc.save()
-    const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' })
+    const blob = new Blob([modifiedPdfBytes as BlobPart], { type: 'application/pdf' })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
