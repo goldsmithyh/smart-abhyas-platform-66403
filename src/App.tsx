@@ -21,6 +21,7 @@ import AdminDownloads from "./pages/AdminDownloads";
 import AdminTrash from "./pages/AdminTrash";
 import AdminPricing from "./pages/AdminPricing";
 import AdminMiniWebsite from "./pages/AdminMiniWebsite";
+import ImportData from "./pages/ImportData";
 import NotFound from "./pages/NotFound";
 import EmailVerification from "./pages/EmailVerification";
 
@@ -50,6 +51,7 @@ const App: React.FC = () => {
               <Route path="/admin/downloads" element={<AdminDownloads />} />
               <Route path="/admin/trash" element={<AdminTrash />} />
               <Route path="/admin/mini-website" element={<AdminMiniWebsite />} />
+              <Route path="/admin/import-data" element={<ImportData />} />
               <Route path="/email-verification" element={<EmailVerification />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

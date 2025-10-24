@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.send-pdf-email]
 verify_jwt = false
+
+[functions.import-old-data]
+verify_jwt = false
