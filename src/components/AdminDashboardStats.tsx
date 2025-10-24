@@ -53,7 +53,7 @@ const AdminDashboardStats = () => {
         const { data: payments } = await supabase
           .from('payment_transactions')
           .select('amount')
-          .eq('status', 'success');
+          .eq('status', 'completed');
 
         const totalRevenue = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
 
