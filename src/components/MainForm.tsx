@@ -1,3 +1,4 @@
+// MainForm.tsx
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,9 +24,9 @@ interface DatabasePaper {
 interface PDFPaper {
   id: string;
   title: string;
-  paper_type: 'question' | 'answer';
-  standard: '10th' | '11th' | '12th';
-  exam_type: 'unit1' | 'term1' | 'unit2' | 'prelim1' | 'prelim2' | 'prelim3' | 'term2' | 'internal' | 'chapter';
+  paper_type: "question" | "answer";
+  standard: "10th" | "11th" | "12th";
+  exam_type: "unit1" | "term1" | "unit2" | "prelim1" | "prelim2" | "prelim3" | "term2" | "internal" | "chapter";
   subject: string;
   file_url: string;
   file_name: string;
@@ -50,74 +51,93 @@ const MainForm = () => {
   const [selectedExam, setSelectedExam] = useState("");
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string[]>([]);
-  const [standards, setStandards] = useState<Array<{id: string, code: string, display_order: number, is_active: boolean, created_at: string, updated_at: string}>>([]);
-  const [examTypes, setExamTypes] = useState<Array<{id: string, name: string, standard_id: string | null, display_order: number, is_active: boolean, created_at: string, updated_at: string}>>([]);
-  const [paperPricing, setPaperPricing] = useState<{[key: string]: {price: number, is_free: boolean}}>({});
+  const [standards, setStandards] = useState<
+    Array<{
+      id: string;
+      code: string;
+      display_order: number;
+      is_active: boolean;
+      created_at: string;
+      updated_at: string;
+    }>
+  >([]);
+  const [examTypes, setExamTypes] = useState<
+    Array<{
+      id: string;
+      name: string;
+      standard_id: string | null;
+      display_order: number;
+      is_active: boolean;
+      created_at: string;
+      updated_at: string;
+    }>
+  >([]);
+  const [paperPricing, setPaperPricing] = useState<{
+    [key: string]: { price: number; is_free: boolean };
+  }>({});
   const [formData, setFormData] = useState({
     schoolName: "",
     fullName: "",
     email: "",
-    mobile: ""
+    mobile: "",
   });
   const [schoolNameError, setSchoolNameError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { toast } = useToast();
 
-  // Fetch catalog data on component mount
+  // Fetch standards
   useEffect(() => {
     const fetchCatalogData = async () => {
       const { data: standardsData, error: standardsError } = await supabase
-        .from('standards')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order');
-      
+        .from("standards")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order");
+
       if (standardsError) {
-        console.error('Error loading standards:', standardsError);
+        console.error("Error loading standards:", standardsError);
       } else if (standardsData) {
         setStandards(standardsData);
       }
     };
-    
+
     fetchCatalogData();
   }, []);
 
   // Load exam types based on selected class
   useEffect(() => {
     const loadExamTypes = async () => {
-      if (!selectedClass || selectedClass === 'Select Class..') {
+      if (!selectedClass || selectedClass === "Select Class..") {
         setExamTypes([]);
         return;
       }
 
-      // First get the standard ID for the selected class
       const { data: standardData, error: standardError } = await supabase
-        .from('standards')
-        .select('id')
-        .eq('code', selectedClass)
+        .from("standards")
+        .select("id")
+        .eq("code", selectedClass)
         .single();
 
       if (standardError || !standardData) {
-        console.error('Error loading standard:', standardError);
+        console.error("Error loading standard:", standardError);
         setExamTypes([]);
         return;
       }
 
-      // Then get exam types for this standard
       const { data, error } = await supabase
-        .from('exam_types')
-        .select('*')
-        .eq('standard_id', standardData.id)
-        .eq('is_active', true)
-        .order('display_order');
+        .from("exam_types")
+        .select("*")
+        .eq("standard_id", standardData.id)
+        .eq("is_active", true)
+        .order("display_order");
 
       if (error) {
-        console.error('Error loading exam types:', error);
+        console.error("Error loading exam types:", error);
         toast({
           title: "Error",
           description: "Error loading exam types",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
@@ -126,9 +146,9 @@ const MainForm = () => {
     };
 
     loadExamTypes();
-  }, [selectedClass]);
+  }, [selectedClass, toast]);
 
-  // Load subjects that have actual papers uploaded for the selected combination
+  // Load subjects for selected combination
   useEffect(() => {
     const loadAvailableSubjects = async () => {
       if (!selectedClass || !selectedExam || !paperType) {
@@ -137,52 +157,41 @@ const MainForm = () => {
         return;
       }
 
-      console.log('Checking paper availability for:', { selectedClass, selectedExam, paperType });
-
-      // Get papers for this specific combination - now using the exam ID directly
       const { data, error } = await supabase
-        .from('papers')
-        .select(`
+        .from("papers")
+        .select(
+          `
           subject,
           id,
           paper_pricing(price, is_free)
-        `)
-        .eq('standard', selectedClass)
-        .eq('exam_type', selectedExam) // Use the exam ID directly instead of mapping
-        .eq('paper_type', paperType)
-        .eq('is_active', true);
+        `,
+        )
+        .eq("standard", selectedClass)
+        .eq("exam_type", selectedExam)
+        .eq("paper_type", paperType)
+        .eq("is_active", true);
 
       if (error) {
-        console.error('Error fetching papers:', error);
+        console.error("Error fetching papers:", error);
         setAvailableSubjects([]);
         setPaperPricing({});
         return;
       }
 
-      console.log('Found papers:', data);
-
-      // Extract unique subjects that have active papers uploaded
-      const uniqueSubjects = [...new Set(data?.map(paper => paper.subject) || [])];
-      console.log('Available subjects:', uniqueSubjects);
+      const uniqueSubjects = [...new Set(data?.map((paper: any) => paper.subject) || [])];
       setAvailableSubjects(uniqueSubjects);
 
-      // Store pricing information for subjects that have papers
-      const pricingMap: {[key: string]: {price: number, is_free: boolean}} = {};
-      data?.forEach(paper => {
+      const pricingMap: { [key: string]: { price: number; is_free: boolean } } = {};
+      data?.forEach((paper: any) => {
         const paperData = paper as PaperWithPricing;
+        const key = `${selectedClass}-${selectedExam}-${paperType}-${paperData.subject}`;
         if (paperData.paper_pricing && paperData.paper_pricing.length > 0) {
-          const key = `${selectedClass}-${selectedExam}-${paperType}-${paperData.subject}`;
           pricingMap[key] = {
             price: paperData.paper_pricing[0].price,
-            is_free: paperData.paper_pricing[0].is_free
+            is_free: paperData.paper_pricing[0].is_free,
           };
         } else {
-          // Default to free if no pricing info found
-          const key = `${selectedClass}-${selectedExam}-${paperType}-${paperData.subject}`;
-          pricingMap[key] = {
-            price: 0,
-            is_free: true
-          };
+          pricingMap[key] = { price: 0, is_free: true };
         }
       });
       setPaperPricing(pricingMap);
@@ -194,12 +203,10 @@ const MainForm = () => {
   }, [selectedClass, selectedExam, paperType, examTypes]);
 
   const handleSubjectChange = (subject: string) => {
-    setSelectedSubject(prev => {
+    setSelectedSubject((prev) => {
       if (prev.includes(subject)) {
-        // Remove if already selected
-        return prev.filter(s => s !== subject);
+        return prev.filter((s) => s !== subject);
       } else {
-        // Add if not selected
         return [...prev, subject];
       }
     });
@@ -208,12 +215,11 @@ const MainForm = () => {
   const getPaperPricing = (subject: string) => {
     const key = `${selectedClass}-${selectedExam}-${paperType}-${subject}`;
     const pricing = paperPricing[key];
-    
-    // Since we're only showing subjects with papers, they should all be available
+
     if (!pricing) {
       return { price: 0, is_free: true, available: true };
     }
-    
+
     return { ...pricing, available: true };
   };
 
@@ -227,85 +233,77 @@ const MainForm = () => {
 
   const handlePaymentSuccess = async (paymentId: string, orderId: string) => {
     try {
-      // Create multiple payment records for each subject
       for (const subject of selectedSubject) {
         const pricing = getPaperPricing(subject);
-        const { error: transactionError } = await supabase
-          .from('payment_transactions')
-          .insert({
-            user_email: formData.email,
-            user_name: formData.fullName,
-            school_name: formData.schoolName,
-            mobile: formData.mobile,
-            paper_id: subject,
-            razorpay_payment_id: paymentId,
-            razorpay_order_id: orderId,
-            amount: pricing.is_free ? 0 : pricing.price,
-            status: 'completed'
-          });
+        const { error: transactionError } = await supabase.from("payment_transactions").insert({
+          user_email: formData.email,
+          user_name: formData.fullName,
+          school_name: formData.schoolName,
+          mobile: formData.mobile,
+          paper_id: subject,
+          razorpay_payment_id: paymentId,
+          razorpay_order_id: orderId,
+          amount: pricing.is_free ? 0 : pricing.price,
+          status: "completed",
+        });
         if (transactionError) {
-          console.error('Error creating payment record for subject:', subject, transactionError);
+          console.error("Error creating payment record for subject:", subject, transactionError);
         }
       }
 
-      // Proceed with download
       await processDownloads();
-
-      // Send PDFs via email
       await sendPDFsToEmail();
-      
+
       toast({
         title: "Payment Successful!",
         description: "PDFs downloaded and sent to your email.",
       });
     } catch (error) {
-      console.error('Error processing payment success:', error);
+      console.error("Error processing payment success:", error);
       toast({
         title: "Error",
         description: "Payment successful but there was an issue. Please contact support.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handlePaymentError = (error: any) => {
-    console.error('Payment failed:', error);
+    console.error("Payment failed:", error);
     toast({
       title: "Payment Failed",
       description: "Your payment could not be processed. Please try again.",
-      variant: "destructive"
+      variant: "destructive",
     });
   };
 
   const sendPDFsToEmail = async () => {
     if (!selectedSubject.length) return;
-    
-    // Send each PDF via email
+
     for (const subject of selectedSubject) {
       const { data: papers, error } = await supabase
-        .from('papers')
-        .select('*')
-        .eq('standard', selectedClass)
-        .eq('exam_type', selectedExam)
-        .eq('paper_type', paperType)
-        .eq('subject', subject)
-        .eq('is_active', true)
-        .order('display_order')
+        .from("papers")
+        .select("*")
+        .eq("standard", selectedClass)
+        .eq("exam_type", selectedExam)
+        .eq("paper_type", paperType)
+        .eq("subject", subject)
+        .eq("is_active", true)
+        .order("display_order")
         .limit(1);
 
       if (error || !papers || papers.length === 0) {
-        console.error('Error fetching paper for email:', subject, error);
+        console.error("Error fetching paper for email:", subject, error);
         continue;
       }
 
       const paper = papers[0] as DatabasePaper;
-      
-      // Get exam type name for display
-      const examTypeData = examTypes.find(e => e.id === selectedExam);
+
+      const examTypeData = examTypes.find((e) => e.id === selectedExam);
       const examTypeName = examTypeData?.name || selectedExam;
 
       try {
-        const { error: emailError } = await supabase.functions.invoke('send-pdf-email', {
+        const { error: emailError } = await supabase.functions.invoke("send-pdf-email", {
           body: {
             userEmail: formData.email,
             userName: formData.fullName,
@@ -316,107 +314,110 @@ const MainForm = () => {
             standard: selectedClass,
             examType: examTypeName,
             paperType: paperType,
-            adminEmail: 'admin@smartabhyas.com' // Change this to your business email
-          }
+            adminEmail: "admin@smartabhyas.com",
+          },
         });
 
         if (emailError) {
-          console.error('Error sending email for subject:', subject, emailError);
+          console.error("Error sending email for subject:", subject, emailError);
         }
       } catch (err) {
-        console.error('Failed to send email for subject:', subject, err);
+        console.error("Failed to send email for subject:", subject, err);
       }
     }
   };
 
   const processDownloads = async () => {
     if (!selectedSubject.length) return;
-    
-    // Process downloads for each selected subject
+
     for (const subject of selectedSubject) {
-      // Get papers for this specific combination using the exam ID directly
       const { data: papers, error } = await supabase
-        .from('papers')
-        .select('*')
-        .eq('standard', selectedClass)
-        .eq('exam_type', selectedExam) // Use the exam ID directly
-        .eq('paper_type', paperType)
-        .eq('subject', subject)
-        .eq('is_active', true)
-        .order('display_order')
+        .from("papers")
+        .select("*")
+        .eq("standard", selectedClass)
+        .eq("exam_type", selectedExam)
+        .eq("paper_type", paperType)
+        .eq("subject", subject)
+        .eq("is_active", true)
+        .order("display_order")
         .limit(1);
 
       if (error || !papers || papers.length === 0) {
-        console.error('Error fetching paper for subject:', subject, error);
+        console.error("Error fetching paper for subject:", subject, error);
         continue;
       }
 
       const paper = papers[0] as DatabasePaper;
-    
-    const selectedStandardData = standards.find(s => s.code === selectedClass);
-    const standard = selectedStandardData?.code as '10th' | '11th' | '12th' || '10th';
-    
-    const pdfPaper: PDFPaper = {
-      id: paper.id,
-      title: paper.title,
-      paper_type: paperType as 'question' | 'answer',
-      standard: standard,
-      exam_type: selectedExam as 'unit1' | 'term1' | 'unit2' | 'prelim1' | 'prelim2' | 'prelim3' | 'term2' | 'internal' | 'chapter',
-      subject: paper.subject,
-      file_url: paper.file_url,
-      file_name: paper.file_name
-    };
 
-    const userInfo = {
-      collegeName: formData.schoolName,
-      email: formData.email,
-      phone: formData.mobile || ''
-    };
+      const selectedStandardData = standards.find((s) => s.code === selectedClass);
+      const standard = (selectedStandardData?.code as "10th" | "11th" | "12th") || "10th";
 
-    const { error: logError } = await supabase
-      .from('download_logs')
-      .insert({
+      const pdfPaper: PDFPaper = {
+        id: paper.id,
+        title: paper.title,
+        paper_type: paperType as "question" | "answer",
+        standard: standard,
+        exam_type: selectedExam as
+          | "unit1"
+          | "term1"
+          | "unit2"
+          | "prelim1"
+          | "prelim2"
+          | "prelim3"
+          | "term2"
+          | "internal"
+          | "chapter",
+        subject: paper.subject,
+        file_url: paper.file_url,
+        file_name: paper.file_name,
+      };
+
+      const userInfo = {
+        collegeName: formData.schoolName,
+        email: formData.email,
+        phone: formData.mobile || "",
+      };
+
+      const { error: logError } = await supabase.from("download_logs").insert({
         paper_id: paper.id,
         user_email: formData.email,
         user_name: formData.fullName,
         school_name: formData.schoolName,
-        mobile: formData.mobile
+        mobile: formData.mobile,
       });
 
-    if (logError) {
-      console.error('Error logging download:', logError);
-    }
+      if (logError) {
+        console.error("Error logging download:", logError);
+      }
 
-    await downloadActualPDF(pdfPaper, userInfo);
+      await downloadActualPDF(pdfPaper, userInfo);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate school name length
+
     if (formData.schoolName.trim().length < 10) {
       setSchoolNameError("विद्यालय / कॉलेज नाव किमान 10 अक्षरांचे असावे");
       toast({
         title: "त्रुटी",
         description: "विद्यालय / कॉलेज नाव किमान 10 अक्षरांचे असावे",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-    
+
     if (!selectedClass || !selectedExam || !selectedSubject.length || !formData.email || !formData.schoolName) {
       toast({
         title: "कृपया सर्व आवश्यक माहिती भरा",
         description: "सर्व आवश्यक फील्ड भरणे आवश्यक आहे",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     const totalAmount = getTotalAmount();
-    
-    // If total amount is 0 (all free papers), proceed directly with download
+
     if (totalAmount === 0) {
       setIsLoading(true);
       try {
@@ -426,11 +427,11 @@ const MainForm = () => {
           description: "तुमची PDFs watermark सह download होत आहेत...",
         });
       } catch (error) {
-        console.error('Error processing downloads:', error);
+        console.error("Error processing downloads:", error);
         toast({
           title: "Error",
           description: "काहीतरी चूक झाली. कृपया पुन्हा प्रयत्न करा.",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsLoading(false);
@@ -438,40 +439,51 @@ const MainForm = () => {
       return;
     }
 
-    // If there are paid papers, initiate payment
     setIsLoading(true);
 
     try {
       const totalAmount = getTotalAmount();
-      console.log('Total amount for payment:', totalAmount);
-      console.log('Selected subject:', selectedSubject);
-      
       if (totalAmount <= 0) {
-        throw new Error('Invalid payment amount');
+        throw new Error("Invalid payment amount");
       }
 
       await initiatePayment(
         totalAmount,
-        selectedSubject.join(', '), // Convert array to string
+        selectedSubject.join(", "),
         {
-          name: formData.fullName || 'User',
+          name: formData.fullName || "User",
           email: formData.email,
-          phone: formData.mobile || '',
-          schoolName: formData.schoolName
+          phone: formData.mobile || "",
+          schoolName: formData.schoolName,
         },
         handlePaymentSuccess,
-        handlePaymentError
+        handlePaymentError,
       );
     } catch (error) {
-      console.error('Error initiating payment:', error);
+      console.error("Error initiating payment:", error);
       toast({
         title: "Error",
         description: "Payment could not be initiated. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // --- UI helper: ultra-simple fallback override for 12th + chapterwise
+  const renderExamName = (name: string) => {
+    if (
+      selectedClass === "12th" &&
+      (name || "")
+        .normalize("NFKC")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+        .includes("प्रकरण")
+    ) {
+      // Safety net: still show Feb/Mar 2023 if mapping missed
+      return "फेब्रुवारी / मार्च 2023";
+    }
+    return getExamTypeDisplayName(name, selectedClass);
   };
 
   return (
@@ -482,10 +494,10 @@ const MainForm = () => {
             <div className="card-body">
               <form onSubmit={handleSubmit}>
                 <div className="radio-toolbar">
-                  <input 
-                    type="radio" 
-                    id="type_question" 
-                    name="paper_type" 
+                  <input
+                    type="radio"
+                    id="type_question"
+                    name="paper_type"
                     value="question"
                     checked={paperType === "question"}
                     onChange={(e) => {
@@ -495,11 +507,11 @@ const MainForm = () => {
                     }}
                   />
                   <label htmlFor="type_question">प्रश्नपत्रिका</label>
-                  
-                  <input 
-                    type="radio" 
-                    id="type_answer" 
-                    name="paper_type" 
+
+                  <input
+                    type="radio"
+                    id="type_answer"
+                    name="paper_type"
                     value="answer"
                     checked={paperType === "answer"}
                     onChange={(e) => {
@@ -512,9 +524,11 @@ const MainForm = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label htmlFor="class" className="form-label">इयत्ता</label>
-                  <select 
-                    id="class" 
+                  <label htmlFor="class" className="form-label">
+                    इयत्ता
+                  </label>
+                  <select
+                    id="class"
                     className="form-select"
                     value={selectedClass}
                     onChange={(e) => {
@@ -534,9 +548,11 @@ const MainForm = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label htmlFor="exam" className="form-label">परीक्षा निवडा</label>
-                  <select 
-                    id="exam" 
+                  <label htmlFor="exam" className="form-label">
+                    परीक्षा निवडा
+                  </label>
+                  <select
+                    id="exam"
                     className="form-select"
                     value={selectedExam}
                     onChange={(e) => {
@@ -548,7 +564,7 @@ const MainForm = () => {
                     <option value="">परीक्षा निवडा</option>
                     {examTypes.map((exam) => (
                       <option key={exam.id} value={exam.id}>
-                        {getExamTypeDisplayName(exam.name)}
+                        {renderExamName(exam.name)}
                       </option>
                     ))}
                   </select>
@@ -572,13 +588,9 @@ const MainForm = () => {
                             <label htmlFor={subject}>
                               {subject}
                               {!pricing.is_free ? (
-                                <span className="text-green-600 font-semibold ml-2">
-                                  (₹{pricing.price})
-                                </span>
+                                <span className="text-green-600 font-semibold ml-2">(₹{pricing.price})</span>
                               ) : (
-                                <span className="text-blue-600 font-semibold ml-2">
-                                  (Free)
-                                </span>
+                                <span className="text-blue-600 font-semibold ml-2">(Free)</span>
                               )}
                             </label>
                           </div>
@@ -595,14 +607,16 @@ const MainForm = () => {
                 )}
 
                 <div className="mb-3">
-                  <label htmlFor="school_name" className="form-label">विद्यालय / कॉलेज नाव</label>
-                  <input 
-                    type="text" 
-                    id="school_name" 
-                    className={`form-control ${schoolNameError ? 'border-red-500' : ''}`}
+                  <label htmlFor="school_name" className="form-label">
+                    विद्यालय / कॉलेज नाव
+                  </label>
+                  <input
+                    type="text"
+                    id="school_name"
+                    className={`form-control ${schoolNameError ? "border-red-500" : ""}`}
                     value={formData.schoolName}
                     onChange={(e) => {
-                      setFormData({...formData, schoolName: e.target.value});
+                      setFormData({ ...formData, schoolName: e.target.value });
                       if (e.target.value.trim().length >= 10) {
                         setSchoolNameError("");
                       }
@@ -610,45 +624,49 @@ const MainForm = () => {
                     minLength={10}
                     required
                   />
-                  {schoolNameError && (
-                    <small className="text-red-500 mt-1 block">{schoolNameError}</small>
-                  )}
+                  {schoolNameError && <small className="text-red-500 mt-1 block">{schoolNameError}</small>}
                   <small className="text-muted mt-1 block">किमान 10 अक्षरे आवश्यक</small>
                 </div>
 
                 <h5 className="mt-4 mb-3">वैयक्तिक माहिती</h5>
 
                 <div className="mb-3">
-                  <label htmlFor="full_name" className="form-label">नाव</label>
-                  <input 
-                    type="text" 
-                    id="full_name" 
+                  <label htmlFor="full_name" className="form-label">
+                    नाव
+                  </label>
+                  <input
+                    type="text"
+                    id="full_name"
                     className="form-control"
                     value={formData.fullName}
-                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   />
                 </div>
 
                 <div className="row">
                   <div className="col-md-6 mb-3">
-                    <label htmlFor="email" className="form-label">ई-मेल</label>
-                    <input 
-                      type="email" 
-                      id="email" 
+                    <label htmlFor="email" className="form-label">
+                      ई-मेल
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
                       className="form-control"
                       value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
                     />
                   </div>
                   <div className="col-md-6 mb-3">
-                    <label htmlFor="mobile" className="form-label">मोबाईल</label>
-                    <input 
-                      type="tel" 
-                      id="mobile" 
+                    <label htmlFor="mobile" className="form-label">
+                      मोबाईल
+                    </label>
+                    <input
+                      type="tel"
+                      id="mobile"
                       className="form-control"
                       value={formData.mobile}
-                      onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
                     />
                   </div>
                 </div>
@@ -657,7 +675,7 @@ const MainForm = () => {
                   <div className="mb-3 p-3 bg-gray-50 rounded">
                     <h6 className="font-semibold mb-2">Selected Papers ({selectedSubject.length}):</h6>
                     <div className="space-y-2">
-                      {selectedSubject.map(subject => {
+                      {selectedSubject.map((subject) => {
                         const pricing = getPaperPricing(subject);
                         return (
                           <div key={subject} className="flex justify-between items-center">
@@ -678,12 +696,12 @@ const MainForm = () => {
                 )}
 
                 <div className="text-center mt-4">
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary btn-lg px-4"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Processing..." : getTotalAmount() > 0 ? `Pay ₹${getTotalAmount()} & Download` : "Download करा"}
+                  <button type="submit" className="btn btn-primary btn-lg px-4" disabled={isLoading}>
+                    {isLoading
+                      ? "Processing..."
+                      : getTotalAmount() > 0
+                        ? `Pay ₹${getTotalAmount()} & Download`
+                        : "Download करा"}
                   </button>
                 </div>
               </form>
@@ -696,11 +714,21 @@ const MainForm = () => {
             <div className="card-body">
               <h3 className="text-primary mb-4">Highlights Of Smart Abhyas</h3>
               <ul className="feature-list">
-                <li><i className="fas fa-check-circle"></i> Maharashtra State Board Syllabus</li>
-                <li><i className="fas fa-check-circle"></i> Question Papers of All Exams Available</li>
-                <li><i className="fas fa-check-circle"></i> Que. Papers With School/College/Institute Name</li>
-                <li><i className="fas fa-check-circle"></i> Fully Solved Answers</li>
-                <li><i className="fas fa-check-circle"></i> High Quality PDF Format</li>
+                <li>
+                  <i className="fas fa-check-circle"></i> Maharashtra State Board Syllabus
+                </li>
+                <li>
+                  <i className="fas fa-check-circle"></i> Question Papers of All Exams Available
+                </li>
+                <li>
+                  <i className="fas fa-check-circle"></i> Que. Papers With School/College/Institute Name
+                </li>
+                <li>
+                  <i className="fas fa-check-circle"></i> Fully Solved Answers
+                </li>
+                <li>
+                  <i className="fas fa-check-circle"></i> High Quality PDF Format
+                </li>
               </ul>
             </div>
           </div>
