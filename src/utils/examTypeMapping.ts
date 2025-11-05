@@ -1,28 +1,43 @@
 // utils/examTypeMapping.ts
 
-/**
- * Converts database exam type names to user-friendly display names.
- * Handles special replacements for specific standards (like 12th).
- *
- * Example:
- *  - For 12th std: "प्रकरणानुसार परीक्षा" → "फेब्रुवारी / मार्च 2023"
- *  - For all: "अंतर्गत मूल्यमापन परीक्षा" → "फेब्रुवारी / मार्च 2022"
- *
- * @param dbName - Exam type name from database (Marathi text)
- * @param standardCode - Standard code ("10th", "11th", "12th")
- * @returns Display name for dropdown
- */
-export const getExamTypeDisplayName = (dbName: string, standardCode?: string): string => {
-  if (!dbName) return "";
+// Zero-width + whitespace normalize
+const normalize = (s?: string) =>
+  (s || "")
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "") // ZWJ/ZWNJ/FEFF
+    .trim();
 
-  // ✅ 12th साठी विशेष बदल
-  if (standardCode === "12th" && dbName.trim() === "प्रकरणानुसार परीक्षा") {
+// काही वेळा टायपो/स्पेसिंग/वेरिएंट्स असतात, म्हणून synonyms
+const CHAPTERWISE_VARIANTS = [
+  "प्रकरणानुसार परीक्षा",
+  "प्रकरणानुसार  परीक्षा",
+  "प्रकरण नुसार परीक्षा",
+  "प्रकरणनुसार परीक्षा",
+  "प्रकरणनिहाय परीक्षा",
+  "Chapterwise Test",
+  "chapter",
+];
+
+const equalsAny = (input: string, variants: string[]) => {
+  const n = normalize(input);
+  return variants.some((v) => normalize(v) === n);
+};
+
+export const getExamTypeDisplayName = (dbName: string, standardCode?: string): string => {
+  const name = normalize(dbName);
+  const std = normalize(standardCode);
+
+  // DEBUG (हवे असल्यास uncomment करा):
+  // console.log("[examTypeMapping] in:", dbName, "std:", standardCode);
+
+  // ✅ 12th साठी विशेष rename
+  if (std === "12th" && equalsAny(name, CHAPTERWISE_VARIANTS)) {
     return "फेब्रुवारी / मार्च 2023";
   }
 
-  // ✅ इतर सामान्य नावांचे friendly replacements
-  const nameMap: Record<string, string> = {
-    "अंतर्गत मूल्यमापन परीक्षा": "फेब्रुवारी / मार्च 2022",
+  // ✅ इतर सामान्य mappings (गरजेनुसार ठेवा/काढा)
+  const map: Record<string, string> = {
+    [normalize("अंतर्गत मूल्यमापन परीक्षा")]: "फेब्रुवारी / मार्च 2022",
     unit1: "Unit Test 1",
     unit2: "Unit Test 2",
     term1: "Term 1 Exam",
@@ -34,6 +49,5 @@ export const getExamTypeDisplayName = (dbName: string, standardCode?: string): s
     chapter: "Chapterwise Test",
   };
 
-  // 🔍 If name found in map → return it; else return as-is
-  return nameMap[dbName] || dbName;
+  return map[name] || dbName; // map मध्ये नसेल तर original दाखवा
 };
