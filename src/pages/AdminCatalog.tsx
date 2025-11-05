@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Edit, Plus } from "lucide-react";
+import { getExamTypeDisplayName } from "@/utils/examTypeMapping";
 
 interface Standard {
   id: string;
@@ -396,9 +397,9 @@ const AdminCatalog = () => {
                        </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {examTypes.map((examType) => (
+                       {examTypes.map((examType) => (
                          <TableRow key={examType.id}>
-                           <TableCell>{examType.name}</TableCell>
+                           <TableCell>{getExamTypeDisplayName(examType.name)}</TableCell>
                            <TableCell>{standards.find(s => s.id === examType.standard_id)?.code || 'All'}</TableCell>
                            <TableCell>{examType.display_order}</TableCell>
                           <TableCell>

@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadActualPDF } from "@/utils/pdfUtils";
 import { initiatePayment } from "@/utils/razorpay";
+import { getExamTypeDisplayName } from "@/utils/examTypeMapping";
 
 interface DatabasePaper {
   id: string;
@@ -547,7 +548,7 @@ const MainForm = () => {
                     <option value="">परीक्षा निवडा</option>
                     {examTypes.map((exam) => (
                       <option key={exam.id} value={exam.id}>
-                        {exam.name}
+                        {getExamTypeDisplayName(exam.name)}
                       </option>
                     ))}
                   </select>
