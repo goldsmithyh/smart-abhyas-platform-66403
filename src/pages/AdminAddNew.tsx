@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getExamTypeDisplayName } from "@/utils/examTypeMapping";
 
 interface Standard {
   id: string;
@@ -312,7 +313,7 @@ const AdminAddNew = () => {
                     <SelectContent>
                       {filteredExamTypes.map((exam) => (
                         <SelectItem key={exam.id} value={exam.id}>
-                          {exam.name}
+                          {getExamTypeDisplayName(exam.name)}
                         </SelectItem>
                       ))}
                     </SelectContent>

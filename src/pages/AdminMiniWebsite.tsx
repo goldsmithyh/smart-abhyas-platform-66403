@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadActualPDF } from "@/utils/pdfUtils";
+import { getExamTypeDisplayName } from "@/utils/examTypeMapping";
 
 interface Paper {
   id: string;
@@ -343,7 +344,7 @@ const AdminMiniWebsite = () => {
                       <SelectContent>
                         {examTypes.map((exam) => (
                           <SelectItem key={exam.id} value={exam.id}>
-                            {exam.name}
+                            {getExamTypeDisplayName(exam.name)}
                           </SelectItem>
                         ))}
                       </SelectContent>
