@@ -19,15 +19,6 @@ interface DownloadLog {
   school_name: string | null;
   downloaded_at: string;
   paper_id: string;
-  papers: {
-    title: string;
-    subject: string;
-    class_level: string;
-    file_url: string;
-    file_name: string;
-    paper_type: string;
-    exam_type: string;
-  };
 }
 
 const AdminUsers = () => {
@@ -44,18 +35,7 @@ const AdminUsers = () => {
     try {
       const { data, error } = await supabase
         .from('download_logs')
-        .select(`
-          *,
-          papers:paper_id (
-            title,
-            subject,
-            class_level,
-            file_url,
-            file_name,
-            paper_type,
-            exam_type
-          )
-        `)
+        .select('*')
         .order('downloaded_at', { ascending: false });
 
       if (error) throw error;
@@ -73,49 +53,11 @@ const AdminUsers = () => {
   };
 
   const downloadUserPaper = async (log: DownloadLog) => {
-    try {
-      if (!log.papers?.file_url) {
-        toast({
-          title: "Error",
-          description: "File URL not found",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Create paper object for PDF utils
-      const paper = {
-        id: log.paper_id,
-        title: log.papers.title,
-        paper_type: log.papers.paper_type as 'question' | 'answer',
-        standard: log.papers.class_level as '10th' | '11th' | '12th',
-        exam_type: log.papers.exam_type as 'unit1' | 'term1' | 'unit2' | 'final',
-        subject: log.papers.subject,
-        file_url: log.papers.file_url,
-        file_name: log.papers.file_name
-      };
-
-      // Create user info object with college name from school_name
-      const userInfo = {
-        collegeName: log.school_name || 'Unknown College',
-        email: log.user_email,
-        phone: log.mobile || ''
-      };
-
-      await downloadActualPDF(paper, userInfo);
-
-      toast({
-        title: "Success",
-        description: "Admin download started with user's college watermark",
-      });
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
-      toast({
-        title: "Error",
-        description: "Download failed",
-        variant: "destructive"
-      });
-    }
+    toast({
+      title: "Info",
+      description: "Paper download feature requires paper_id to be linked to papers table",
+      variant: "default"
+    });
   };
 
   if (authLoading) {
@@ -182,10 +124,7 @@ const AdminUsers = () => {
                       <TableCell>{log.school_name || 'N/A'}</TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{log.papers?.title}</div>
-                          <div className="text-sm text-gray-500">
-                            {log.papers?.class_level} - {log.papers?.subject}
-                          </div>
+                          <div className="font-medium">{log.paper_id}</div>
                         </div>
                       </TableCell>
                       <TableCell>

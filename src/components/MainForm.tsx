@@ -58,6 +58,7 @@ const MainForm = () => {
     email: "",
     mobile: ""
   });
+  const [schoolNameError, setSchoolNameError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
   const { toast } = useToast();
@@ -392,6 +393,17 @@ const MainForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate school name length
+    if (formData.schoolName.trim().length < 10) {
+      setSchoolNameError("विद्यालय / कॉलेज नाव किमान 10 अक्षरांचे असावे");
+      toast({
+        title: "त्रुटी",
+        description: "विद्यालय / कॉलेज नाव किमान 10 अक्षरांचे असावे",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!selectedClass || !selectedExam || !selectedSubject.length || !formData.email || !formData.schoolName) {
       toast({
         title: "कृपया सर्व आवश्यक माहिती भरा",
@@ -586,11 +598,21 @@ const MainForm = () => {
                   <input 
                     type="text" 
                     id="school_name" 
-                    className="form-control"
+                    className={`form-control ${schoolNameError ? 'border-red-500' : ''}`}
                     value={formData.schoolName}
-                    onChange={(e) => setFormData({...formData, schoolName: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({...formData, schoolName: e.target.value});
+                      if (e.target.value.trim().length >= 10) {
+                        setSchoolNameError("");
+                      }
+                    }}
+                    minLength={10}
                     required
                   />
+                  {schoolNameError && (
+                    <small className="text-red-500 mt-1 block">{schoolNameError}</small>
+                  )}
+                  <small className="text-muted mt-1 block">किमान 10 अक्षरे आवश्यक</small>
                 </div>
 
                 <h5 className="mt-4 mb-3">वैयक्तिक माहिती</h5>

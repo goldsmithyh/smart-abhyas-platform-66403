@@ -7,10 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -63,47 +63,12 @@ export type Database = {
           user_email?: string
           user_name?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "download_logs_paper_id_fkey"
-            columns: ["paper_id"]
-            isOneToOne: false
-            referencedRelation: "papers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      email_verification_codes: {
-        Row: {
-          code: string
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          is_used: boolean
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          email: string
-          expires_at?: string
-          id?: string
-          is_used?: boolean
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          email?: string
-          expires_at?: string
-          id?: string
-          is_used?: boolean
-        }
         Relationships: []
       }
       exam_types: {
         Row: {
           created_at: string
-          display_order: number | null
+          display_order: number
           id: string
           is_active: boolean
           name: string
@@ -112,16 +77,16 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          display_order?: number | null
+          display_order?: number
           id?: string
           is_active?: boolean
-          name?: string
+          name: string
           standard_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
-          display_order?: number | null
+          display_order?: number
           id?: string
           is_active?: boolean
           name?: string
@@ -199,7 +164,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           paper_type: string
-          standard?: string
+          standard: string
           subject: string
           title: string
           updated_at?: string
@@ -270,7 +235,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string
-          display_order: number | null
+          display_order: number
           id: string
           is_active: boolean
           updated_at: string
@@ -278,7 +243,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string
-          display_order?: number | null
+          display_order?: number
           id?: string
           is_active?: boolean
           updated_at?: string
@@ -286,59 +251,17 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string
-          display_order?: number | null
+          display_order?: number
           id?: string
           is_active?: boolean
           updated_at?: string
         }
         Relationships: []
       }
-      subjects: {
-        Row: {
-          created_at: string
-          display_order: number | null
-          exam_type_id: string | null
-          id: string
-          name: string
-          standard_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          display_order?: number | null
-          exam_type_id?: string | null
-          id?: string
-          name: string
-          standard_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          display_order?: number | null
-          exam_type_id?: string | null
-          id?: string
-          name?: string
-          standard_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subjects_exam_type_id_fkey"
-            columns: ["exam_type_id"]
-            isOneToOne: false
-            referencedRelation: "exam_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subjects_standard_id_fkey"
-            columns: ["standard_id"]
-            isOneToOne: false
-            referencedRelation: "standards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       subjects_catalog: {
         Row: {
           created_at: string
-          display_order: number | null
+          display_order: number
           id: string
           is_active: boolean
           name: string
@@ -347,7 +270,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          display_order?: number | null
+          display_order?: number
           id?: string
           is_active?: boolean
           name: string
@@ -356,7 +279,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          display_order?: number | null
+          display_order?: number
           id?: string
           is_active?: boolean
           name?: string
@@ -378,14 +301,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_expired_verification_codes: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
