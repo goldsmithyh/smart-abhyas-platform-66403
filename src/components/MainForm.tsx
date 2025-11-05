@@ -138,7 +138,16 @@ const MainForm = () => {
 
       console.log('Checking paper availability for:', { selectedClass, selectedExam, paperType });
 
-      // Get papers for this specific combination - now using the exam ID directly
+      // Find the exam type name from the selected exam ID
+      const selectedExamType = examTypes.find(et => et.id === selectedExam);
+      if (!selectedExamType) {
+        console.error('Selected exam type not found');
+        setAvailableSubjects([]);
+        setPaperPricing({});
+        return;
+      }
+
+      // Get papers for this specific combination - using exam type NAME to match papers table
       const { data, error } = await supabase
         .from('papers')
         .select(`
@@ -147,7 +156,7 @@ const MainForm = () => {
           paper_pricing(price, is_free)
         `)
         .eq('standard', selectedClass)
-        .eq('exam_type', selectedExam) // Use the exam ID directly instead of mapping
+        .eq('exam_type', selectedExamType.name) // Use the exam name to match papers table
         .eq('paper_type', paperType)
         .eq('is_active', true);
 
