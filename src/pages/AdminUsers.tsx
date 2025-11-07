@@ -53,11 +53,56 @@ const AdminUsers = () => {
   };
 
   const downloadUserPaper = async (log: DownloadLog) => {
-    toast({
-      title: "Info",
-      description: "Paper download feature requires paper_id to be linked to papers table",
-      variant: "default"
-    });
+    try {
+      // Fetch paper details from papers table
+      const { data: paper, error } = await supabase
+        .from('papers')
+        .select('*')
+        .eq('id', log.paper_id)
+        .single();
+
+      if (error) throw error;
+      
+      if (!paper) {
+        toast({
+          title: "Error",
+          description: "Paper not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Download the paper with user info from the log
+      await downloadActualPDF(
+        {
+          id: paper.id,
+          title: paper.title,
+          paper_type: paper.paper_type as 'question' | 'answer',
+          standard: paper.standard as '10th' | '11th' | '12th',
+          exam_type: paper.exam_type as 'unit1' | 'term1' | 'unit2' | 'final' | 'prelim1' | 'prelim2' | 'prelim3' | 'term2' | 'chapter' | 'internal',
+          subject: paper.subject,
+          file_url: paper.file_url,
+          file_name: paper.file_name
+        },
+        {
+          collegeName: log.school_name || '',
+          email: log.user_email,
+          phone: log.mobile || ''
+        }
+      );
+
+      toast({
+        title: "Success",
+        description: "Paper download started",
+      });
+    } catch (error) {
+      console.error('Error downloading paper:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download paper",
+        variant: "destructive"
+      });
+    }
   };
 
   if (authLoading) {
