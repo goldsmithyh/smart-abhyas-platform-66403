@@ -19,6 +19,12 @@ interface DownloadLog {
   school_name: string | null;
   downloaded_at: string;
   paper_id: string;
+  papers?: {
+    title: string;
+    paper_type: string;
+    standard: string;
+    subject: string;
+  };
 }
 
 const AdminUsers = () => {
@@ -33,13 +39,35 @@ const AdminUsers = () => {
 
   const fetchDownloadLogs = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch download logs
+      const { data: logs, error: logsError } = await supabase
         .from('download_logs')
         .select('*')
         .order('downloaded_at', { ascending: false });
 
-      if (error) throw error;
-      setDownloadLogs(data || []);
+      if (logsError) throw logsError;
+
+      // Get unique paper IDs
+      const paperIds = [...new Set(logs?.map(log => log.paper_id) || [])];
+
+      // Fetch papers
+      const { data: papers, error: papersError } = await supabase
+        .from('papers')
+        .select('id, title, paper_type, standard, subject')
+        .in('id', paperIds);
+
+      if (papersError) throw papersError;
+
+      // Create a map of papers by ID
+      const papersMap = new Map(papers?.map(p => [p.id, p]) || []);
+
+      // Combine logs with paper data
+      const logsWithPapers = logs?.map(log => ({
+        ...log,
+        papers: papersMap.get(log.paper_id)
+      })) || [];
+
+      setDownloadLogs(logsWithPapers);
     } catch (error) {
       console.error('Error fetching download logs:', error);
       toast({
@@ -168,9 +196,14 @@ const AdminUsers = () => {
                       <TableCell>{log.mobile || 'N/A'}</TableCell>
                       <TableCell>{log.school_name || 'N/A'}</TableCell>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{log.paper_id}</div>
-                        </div>
+                        {log.papers ? (
+                          <div>
+                            <div className="font-medium">{log.papers.paper_type === 'question' ? 'Question Paper' : 'Answer Paper'}</div>
+                            <div className="text-sm text-muted-foreground">{log.papers.subject} - {log.papers.standard}</div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">Paper not found</div>
+                        )}
                       </TableCell>
                       <TableCell>
                         {new Date(log.downloaded_at).toLocaleDateString('en-IN', {
