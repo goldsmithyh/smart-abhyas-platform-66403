@@ -3,7 +3,7 @@ import whatsappLogo from '../assets/whatsapp-logo.svg';
 const WhatsAppFloat = () => {
   return (
     <a
-      href="https://whatsapp.com/channel/0029VabiyE5FHWq6p9lnpa0H"
+      href="https://wa.me/919730100160"
       target="_blank"
       rel="noopener noreferrer"
       className="whatsapp-float transition-transform hover:scale-110"
