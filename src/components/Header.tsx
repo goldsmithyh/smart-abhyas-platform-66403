@@ -18,8 +18,8 @@ const Header = () => {
     <header className="bg-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <img src="/lovable-uploads/d0fda1dc-29de-4e00-af9c-57ba32597bb0.png" alt="Smart Abhyas" className="h-10 w-10" />
-          <span className="text-xl font-bold text-blue-600">Smart Abhyas</span>
+          <img src="/lovable-uploads/d0fda1dc-29de-4e00-af9c-57ba32597bb0.png" alt="Smart Creations" className="h-10 w-10" />
+          <span className="text-xl font-bold text-blue-600">Smart Creations</span>
         </Link>
 
         {/* Desktop Navigation */}
