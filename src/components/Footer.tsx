@@ -56,7 +56,7 @@ const Footer = () => {
 
         <div className="text-center">
           <p className="text-gray-400 text-sm">
-            &copy; 2025 Smart Abhyas. All rights reserved.
+            &copy; 2025 Smart Creations. All rights reserved.
           </p>
         </div>
       </div>

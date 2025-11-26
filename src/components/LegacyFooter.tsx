@@ -37,7 +37,7 @@ const LegacyFooter = () => {
             </li>
           </ul>
         </div>
-        <p className="copyright">&copy; 2025 Smart Abhyas. All rights reserved.</p>
+        <p className="copyright">&copy; 2025 Smart Creations. All rights reserved.</p>
       </div>
     </footer>
   );
