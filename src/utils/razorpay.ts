@@ -99,7 +99,7 @@ export const initiatePayment = async (
       key: RAZORPAY_KEY_ID,
       amount: order.amount,
       currency: order.currency,
-      name: 'Smart Abhyas',
+      name: 'Smart Creations',
       description: 'Question Paper Purchase',
       order_id: order.id,
       handler: (response: any) => {

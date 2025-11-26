@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { downloadActualPDF } from "@/utils/pdfUtils";
 import { initiatePayment } from "@/utils/razorpay";
 import { getExamTypeDisplayName } from "@/utils/examTypeMapping";
+import PaymentSuccessDialog from "@/components/PaymentSuccessDialog";
 
 interface DatabasePaper {
   id: string;
@@ -83,6 +84,8 @@ const MainForm = () => {
   });
   const [schoolNameError, setSchoolNameError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [pendingDownloads, setPendingDownloads] = useState<any[]>([]);
 
   const { toast } = useToast();
 
@@ -251,13 +254,28 @@ const MainForm = () => {
         }
       }
 
-      await processDownloads();
-      await sendPDFsToEmail();
+      // Store papers for later download
+      const papers = [];
+      for (const subject of selectedSubject) {
+        const { data, error } = await supabase
+          .from("papers")
+          .select("*")
+          .eq("standard", selectedClass)
+          .eq("exam_type", selectedExam)
+          .eq("paper_type", paperType)
+          .eq("subject", subject)
+          .eq("is_active", true)
+          .order("display_order")
+          .limit(1);
 
-      toast({
-        title: "Payment Successful!",
-        description: "PDFs downloaded and sent to your email.",
-      });
+        if (!error && data && data.length > 0) {
+          papers.push(data[0]);
+        }
+      }
+
+      setPendingDownloads(papers);
+      await sendPDFsToEmail();
+      setShowSuccessDialog(true);
     } catch (error) {
       console.error("Error processing payment success:", error);
       toast({
@@ -266,6 +284,59 @@ const MainForm = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleDownloadFromDialog = async () => {
+    setShowSuccessDialog(false);
+    setIsLoading(true);
+    try {
+      for (const paper of pendingDownloads) {
+        await downloadActualPDF(
+          {
+            id: paper.id,
+            title: paper.title,
+            paper_type: paper.paper_type,
+            standard: paper.standard,
+            exam_type: paper.exam_type,
+            subject: paper.subject,
+            file_url: paper.file_url,
+            file_name: paper.file_name,
+          },
+          {
+            collegeName: formData.schoolName,
+            email: formData.email,
+            phone: formData.mobile,
+          }
+        );
+
+        await supabase.from("download_logs").insert({
+          paper_id: paper.id,
+          user_email: formData.email,
+          user_name: formData.fullName,
+          school_name: formData.schoolName,
+          mobile: formData.mobile,
+        });
+      }
+
+      toast({
+        title: "Download Complete!",
+        description: "PDFs have been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error downloading PDFs:", error);
+      toast({
+        title: "Download Error",
+        description: "There was an issue downloading the PDFs. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoToTop = () => {
+    setShowSuccessDialog(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePaymentError = (error: any) => {
@@ -734,6 +805,12 @@ const MainForm = () => {
           </div>
         </div>
       </div>
+
+      <PaymentSuccessDialog
+        open={showSuccessDialog}
+        onDownload={handleDownloadFromDialog}
+        onGoToTop={handleGoToTop}
+      />
     </section>
   );
 };

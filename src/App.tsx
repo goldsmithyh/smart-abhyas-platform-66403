@@ -12,6 +12,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import RefundPolicy from "./pages/RefundPolicy";
 import TermsConditions from "./pages/TermsConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import MyAccount from "./pages/MyAccount";
 import Admin from "./pages/Admin";
 import AdminAddNew from "./pages/AdminAddNew";
@@ -42,6 +43,7 @@ const App: React.FC = () => {
               <Route path="/contact" element={<Contact />} />
               <Route path="/refund" element={<RefundPolicy />} />
               <Route path="/terms" element={<TermsConditions />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/my-account" element={<MyAccount />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/add-new" element={<AdminAddNew />} />
