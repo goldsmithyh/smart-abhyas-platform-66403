@@ -39,14 +39,14 @@ const App: React.FC = () => {
           <div className="min-h-screen bg-background">
             <Header />
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Auth />} />
+              <Route path="/home" element={<Index />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/refund" element={<RefundPolicy />} />
               <Route path="/terms" element={<TermsConditions />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/my-account" element={<MyAccount />} />
-              <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/add-new" element={<AdminAddNew />} />
               <Route path="/admin/all-pdfs" element={<AdminAllPDFs />} />
