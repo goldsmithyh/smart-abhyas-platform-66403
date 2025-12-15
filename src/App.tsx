@@ -25,6 +25,7 @@ import AdminMiniWebsite from "./pages/AdminMiniWebsite";
 import ImportData from "./pages/ImportData";
 import NotFound from "./pages/NotFound";
 import EmailVerification from "./pages/EmailVerification";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App: React.FC = () => {
               <Route path="/terms" element={<TermsConditions />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/my-account" element={<MyAccount />} />
+              <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/add-new" element={<AdminAddNew />} />
               <Route path="/admin/all-pdfs" element={<AdminAllPDFs />} />
