@@ -54,9 +54,9 @@ const getExamTypeLabel = (examType: string) => {
 const containsDevanagari = (text: string): boolean =>
   /[\u0900-\u097F]/.test(text)
 
-/* -------------------------------------------------- */
-/* WATERMARK HELPERS (UNCHANGED) */
-/* -------------------------------------------------- */
+/* --------------------------------------------------
+   WATERMARK HELPERS (UNCHANGED – SAFE TO KEEP)
+-------------------------------------------------- */
 
 async function addMarathiTextAsImage(
   page: any,
@@ -178,78 +178,28 @@ async function addSingleEnglishWatermark(
   page.pushOperators(popGraphicsState())
 }
 
-/* -------------------------------------------------- */
-/* ✅ FINAL FIXED DOWNLOAD FUNCTION */
-/* -------------------------------------------------- */
+/* --------------------------------------------------
+   ✅ FINAL USER DOWNLOAD (ADMIN-STYLE)
+-------------------------------------------------- */
 
 export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
   try {
-    const isAndroidWebView =
-      typeof navigator !== 'undefined' &&
-      /Android/i.test(navigator.userAgent) &&
-      navigator.userAgent.includes('wv')
+    // ✅ EXACT SAME SYSTEM AS ADMIN DOWNLOAD
+    const link = document.createElement('a')
+    link.href = paper.file_url
 
-    /* ✅ ANDROID WEBVIEW FIX (THIS WAS BROKEN BEFORE) */
-    if (isAndroidWebView) {
-      const examType = getExamTypeLabel(paper.exam_type).replace(/\s+/g, '_')
-      const filename =
-        `${userInfo.collegeName.replace(/\s+/g, '_')}_` +
-        `${paper.standard}_${paper.subject}_${examType}_${paper.paper_type}.pdf`
+    const examType = getExamTypeLabel(paper.exam_type).replace(/\s+/g, '_')
+    link.download =
+      `${userInfo.collegeName.replace(/\s+/g, '_')}_` +
+      `${paper.standard}_${paper.subject}_${examType}_${paper.paper_type}.pdf`
 
-      // 🔥 FIX: NEVER ALLOW baseUrl TO BE undefined
-      const baseUrl =
-        import.meta.env.VITE_SUPABASE_URL || window.location.origin
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
 
-      const downloadUrl =
-        `${baseUrl}/functions/v1/download-paper` +
-        `?fileUrl=${encodeURIComponent(paper.file_url)}` +
-        `&filename=${encodeURIComponent(filename)}`
-
-      window.location.href = downloadUrl
-      return
-    }
-
-    /* ---------------- BROWSER FLOW (UNCHANGED) ---------------- */
-
-    const response = await fetch(paper.file_url)
-    if (!response.ok) throw new Error('PDF fetch failed')
-
-    const pdfBytes = await response.arrayBuffer()
-    const pdfDoc = await PDFDocument.load(pdfBytes)
-    const pages = pdfDoc.getPages()
-    const firstPage = pages[0]
-    const { width, height } = firstPage.getSize()
-
-    const collegeName = userInfo.collegeName.toUpperCase()
-    const hasMarathi = containsDevanagari(collegeName)
-
-    if (hasMarathi) {
-      await addMarathiTextAsImage(firstPage, collegeName, width, height)
-    }
-
-    await Promise.all(
-      pages.map(async page => {
-        const { width: pw, height: ph } = page.getSize()
-        hasMarathi
-          ? await addSingleMarathiWatermark(page, collegeName, pw, ph)
-          : await addSingleEnglishWatermark(page, collegeName, pw, ph, pdfDoc)
-      }),
-    )
-
-    const finalBytes = await pdfDoc.save()
-    const blob = new Blob([finalBytes], { type: 'application/pdf' })
-    const url = URL.createObjectURL(blob)
-
-    const a = document.createElement('a')
-    a.href = url
-    a.download = paper.file_name
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  } catch (err) {
-    console.error('PDF download error:', err)
-    throw err
+  } catch (error) {
+    console.error('Error downloading PDF:', error)
+    throw error
   }
 }
 
