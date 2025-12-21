@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.import-old-data]
 verify_jwt = false
+
+[functions.download-paper]
+verify_jwt = false
