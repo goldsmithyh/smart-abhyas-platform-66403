@@ -25,7 +25,6 @@ import AdminMiniWebsite from "./pages/AdminMiniWebsite";
 import ImportData from "./pages/ImportData";
 import NotFound from "./pages/NotFound";
 import EmailVerification from "./pages/EmailVerification";
-import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -39,8 +38,7 @@ const App: React.FC = () => {
           <div className="min-h-screen bg-background">
             <Header />
             <Routes>
-              <Route path="/" element={<Auth />} />
-              <Route path="/home" element={<Index />} />
+              <Route path="/" element={<Index />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/refund" element={<RefundPolicy />} />

@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, rotateRadians, translate, pushGraphicsState, popGraphicsState } from 'pdf-lib'
+import { PDFDocument, rgb, degrees, rotateRadians, translate, pushGraphicsState, popGraphicsState } from 'pdf-lib'
 
 interface Paper {
   id: string
@@ -34,12 +34,6 @@ const getExamTypeLabel = (examType: string) => {
 }
 
 const containsDevanagari = (text: string): boolean => /[\u0900-\u097F]/.test(text)
-
-// Detect if running in a mobile app (Capacitor/WebView)
-const isMobileApp = (): boolean => {
-  return !!(window as any).Capacitor || 
-         /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase())
-}
 
 async function addMarathiTextAsImage(page: any, text: string, pageWidth: number, pageHeight: number) {
   try {
@@ -86,6 +80,7 @@ async function addMarathiTextAsImage(page: any, text: string, pageWidth: number,
   }
 }
 
+// Marathi watermark — Bigger and centered rotation
 async function addSingleMarathiWatermark(page: any, text: string, pageWidth: number, pageHeight: number) {
   try {
     const canvas = document.createElement('canvas')
@@ -122,6 +117,7 @@ async function addSingleMarathiWatermark(page: any, text: string, pageWidth: num
     const maxScale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height) * 1.2
     const imageDims = image.scale(maxScale)
 
+    // Centered rotation
     page.pushOperators(pushGraphicsState())
     page.pushOperators(translate(pageWidth / 2, pageHeight / 2))
     page.pushOperators(rotateRadians((45 * Math.PI) / 180))
@@ -137,6 +133,7 @@ async function addSingleMarathiWatermark(page: any, text: string, pageWidth: num
   }
 }
 
+// English watermark — Bigger and centered rotation
 async function addSingleEnglishWatermark(page: any, text: string, pageWidth: number, pageHeight: number, pdfDoc: any) {
   try {
     const watermarkFont = await pdfDoc.embedFont('Helvetica-Bold')
@@ -150,6 +147,7 @@ async function addSingleEnglishWatermark(page: any, text: string, pageWidth: num
       textWidth = watermarkFont.widthOfTextAtSize(text, fontSize)
     }
 
+    // Centered rotation
     page.pushOperators(pushGraphicsState())
     page.pushOperators(translate(pageWidth / 2, pageHeight / 2))
     page.pushOperators(rotateRadians((45 * Math.PI) / 180))
@@ -167,177 +165,78 @@ async function addSingleEnglishWatermark(page: any, text: string, pageWidth: num
   }
 }
 
-async function processAndWatermarkPDF(paper: Paper, userInfo: UserInfo): Promise<Uint8Array> {
-  const response = await fetch(paper.file_url)
-  if (!response.ok) throw new Error(`Failed to fetch PDF file: ${response.status} ${response.statusText}`)
-  const contentType = response.headers.get('Content-Type')
-  if (contentType && !contentType.includes('application/pdf')) throw new Error(`Invalid file type: Expected PDF but got ${contentType}`)
-  const existingPdfBytes = await response.arrayBuffer()
-  if (existingPdfBytes.byteLength === 0) throw new Error('Empty file received')
-  const uint8Array = new Uint8Array(existingPdfBytes)
-  if (String.fromCharCode(...uint8Array.slice(0, 4)) !== '%PDF') throw new Error('Invalid PDF file')
-
-  const pdfDoc = await PDFDocument.load(existingPdfBytes)
-  const pages = pdfDoc.getPages()
-  const firstPage = pages[0]
-  const { width, height } = firstPage.getSize()
-
-  const collegeName = userInfo.collegeName.toUpperCase()
-  const hasMarathiText = containsDevanagari(collegeName)
-
-  let font
-  if (hasMarathiText) {
-    try {
-      const fontResponse = await fetch('https://fonts.gstatic.com/s/notosansdevanagari/v25/TuGoUUFzXI5FBtUq5a8bjKYTZjtRU6Sgv3NaV_SNmI0b8QQCQmHn6B2OHjbL_08AlXQly_AzOy8.woff2')
-      if (fontResponse.ok) {
-        const fontBytes = await fontResponse.arrayBuffer()
-        font = await pdfDoc.embedFont(fontBytes)
-      } else throw new Error('Font not available')
-    } catch {
-      await addMarathiTextAsImage(firstPage, collegeName, width, height)
-      font = null
-    }
-  } else {
-    font = await pdfDoc.embedFont('Helvetica-Bold')
-  }
-
-  if (font) {
-    let fontSize = hasMarathiText ? 22 : 24
-    let collegeNameWidth = font.widthOfTextAtSize(collegeName, fontSize)
-    const maxWidth = width * 0.9
-    while (collegeNameWidth > maxWidth && fontSize > 8) {
-      fontSize -= 1
-      collegeNameWidth = font.widthOfTextAtSize(collegeName, fontSize)
-    }
-    firstPage.drawText(collegeName, {
-      x: (width - collegeNameWidth) / 2,
-      y: height - 30,
-      size: fontSize,
-      font,
-      color: rgb(0, 0, 0),
-    })
-  }
-
-  await Promise.all(pages.map(async (page) => {
-    const { width: pw, height: ph } = page.getSize()
-    if (hasMarathiText) {
-      await addSingleMarathiWatermark(page, collegeName, pw, ph)
-    } else {
-      await addSingleEnglishWatermark(page, collegeName, pw, ph, pdfDoc)
-    }
-  }))
-
-  return await pdfDoc.save()
-}
-
-function getFileName(paper: Paper, userInfo: UserInfo): string {
-  const examTypeForFile = getExamTypeLabel(paper.exam_type).replace(/\s+/g, '_')
-  return `${userInfo.collegeName.replace(/\s+/g, '_')}_${paper.standard}_${paper.subject}_${examTypeForFile}_${paper.paper_type}.pdf`
-}
-
-// Desktop download using blob URL
-async function downloadForDesktop(pdfBytes: Uint8Array, fileName: string) {
-  const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' })
-  const url = window.URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  window.URL.revokeObjectURL(url)
-}
-
-// Mobile download - opens PDF in new tab for viewing/saving
-async function downloadForMobile(pdfBytes: Uint8Array, fileName: string) {
-  const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' })
-  
-  // Try using the Web Share API if available (for sharing to Files app, etc.)
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
-    try {
-      const file = new File([blob], fileName, { type: 'application/pdf' })
-      await navigator.share({
-        files: [file],
-        title: fileName,
-      })
-      return
-    } catch (error) {
-      console.log('Share API failed, falling back to blob URL:', error)
-    }
-  }
-  
-  // Fallback: Open as data URL in new tab (works better in mobile WebViews)
-  const reader = new FileReader()
-  reader.onloadend = () => {
-    const dataUrl = reader.result as string
-    const newWindow = window.open()
-    if (newWindow) {
-      newWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>${fileName}</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-              body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; }
-              .header { padding: 10px; background: #f0f0f0; text-align: center; }
-              .header a { 
-                display: inline-block; 
-                padding: 10px 20px; 
-                background: #007bff; 
-                color: white; 
-                text-decoration: none; 
-                border-radius: 5px; 
-                font-family: sans-serif;
-              }
-              iframe { flex: 1; border: none; width: 100%; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <a href="${dataUrl}" download="${fileName}">📥 Download PDF</a>
-            </div>
-            <iframe src="${dataUrl}"></iframe>
-          </body>
-        </html>
-      `)
-      newWindow.document.close()
-    } else {
-      // If popup blocked, use direct link
-      const link = document.createElement('a')
-      link.href = dataUrl
-      link.download = fileName
-      link.target = '_blank'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    }
-  }
-  reader.readAsDataURL(blob)
-}
-
 export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
   try {
-    const pdfBytes = await processAndWatermarkPDF(paper, userInfo)
-    const fileName = getFileName(paper, userInfo)
-    
-    if (isMobileApp()) {
-      await downloadForMobile(pdfBytes, fileName)
-    } else {
-      await downloadForDesktop(pdfBytes, fileName)
-    }
-  } catch (error) {
-    console.error('Error downloading PDF:', error)
-    throw error
-  }
-}
+    const response = await fetch(paper.file_url)
+    if (!response.ok) throw new Error(`Failed to fetch PDF file: ${response.status} ${response.statusText}`)
+    const contentType = response.headers.get('Content-Type')
+    if (contentType && !contentType.includes('application/pdf')) throw new Error(`Invalid file type: Expected PDF but got ${contentType}`)
+    const existingPdfBytes = await response.arrayBuffer()
+    if (existingPdfBytes.byteLength === 0) throw new Error('Empty file received')
+    const uint8Array = new Uint8Array(existingPdfBytes)
+    if (String.fromCharCode(...uint8Array.slice(0, 4)) !== '%PDF') throw new Error('Invalid PDF file')
 
-// Explicit mobile download function
-export const downloadPDFForMobile = async (paper: Paper, userInfo: UserInfo) => {
-  try {
-    const pdfBytes = await processAndWatermarkPDF(paper, userInfo)
-    const fileName = getFileName(paper, userInfo)
-    await downloadForMobile(pdfBytes, fileName)
+    const pdfDoc = await PDFDocument.load(existingPdfBytes)
+    const pages = pdfDoc.getPages()
+    const firstPage = pages[0]
+    const { width, height } = firstPage.getSize()
+
+    const collegeName = userInfo.collegeName.toUpperCase()
+    const hasMarathiText = containsDevanagari(collegeName)
+
+    let font
+    if (hasMarathiText) {
+      try {
+        const fontResponse = await fetch('https://fonts.gstatic.com/s/notosansdevanagari/v25/TuGoUUFzXI5FBtUq5a8bjKYTZjtRU6Sgv3NaV_SNmI0b8QQCQmHn6B2OHjbL_08AlXQly_AzOy8.woff2')
+        if (fontResponse.ok) {
+          const fontBytes = await fontResponse.arrayBuffer()
+          font = await pdfDoc.embedFont(fontBytes)
+        } else throw new Error('Font not available')
+      } catch {
+        await addMarathiTextAsImage(firstPage, collegeName, width, height)
+        font = null
+      }
+    } else {
+      font = await pdfDoc.embedFont('Helvetica-Bold')
+    }
+
+    if (font) {
+      let fontSize = hasMarathiText ? 22 : 24
+      let collegeNameWidth = font.widthOfTextAtSize(collegeName, fontSize)
+      const maxWidth = width * 0.9
+      while (collegeNameWidth > maxWidth && fontSize > 8) {
+        fontSize -= 1
+        collegeNameWidth = font.widthOfTextAtSize(collegeName, fontSize)
+      }
+      firstPage.drawText(collegeName, {
+        x: (width - collegeNameWidth) / 2,
+        y: height - 30,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      })
+    }
+
+    await Promise.all(pages.map(async (page) => {
+      const { width: pw, height: ph } = page.getSize()
+      if (hasMarathiText) {
+        await addSingleMarathiWatermark(page, collegeName, pw, ph)
+      } else {
+        await addSingleEnglishWatermark(page, collegeName, pw, ph, pdfDoc)
+      }
+    }))
+
+    const modifiedPdfBytes = await pdfDoc.save()
+    const blob = new Blob([modifiedPdfBytes as BlobPart], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    const examTypeForFile = getExamTypeLabel(paper.exam_type).replace(/\s+/g, '_')
+    link.download = `${userInfo.collegeName.replace(/\s+/g, '_')}_${paper.standard}_${paper.subject}_${examTypeForFile}_${paper.paper_type}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
   } catch (error) {
     console.error('Error downloading PDF:', error)
     throw error

@@ -1,6 +1,5 @@
+
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import MainForm from '@/components/MainForm';
 import LegacyContentSections from '@/components/LegacyContentSections';
 import LegacyFooter from '@/components/LegacyFooter';
@@ -8,27 +7,6 @@ import LegacyWhatsAppFloat from '@/components/LegacyWhatsAppFloat';
 import ScrollToTop from '@/components/ScrollToTop';
 
 const Index = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check authentication
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        navigate('/');
-      }
-    };
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session?.user) {
-        navigate('/');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
   useEffect(() => {
     // Animation script for cards and sections
     const animateElements = () => {
