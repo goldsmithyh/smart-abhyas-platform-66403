@@ -26,9 +26,9 @@ interface DownloadLog {
 interface Paper {
   id: string
   title: string
-  paper_type: 'question' | 'answer'
-  standard: '10th' | '11th' | '12th'
-  exam_type: 'unit1' | 'term1' | 'unit2' | 'final'
+  paper_type: string
+  standard: string
+  exam_type: string
   subject: string
   file_url: string
   file_name: string
