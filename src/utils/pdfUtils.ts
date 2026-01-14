@@ -169,14 +169,56 @@ async function addSingleEnglishWatermark(
 }
 
 /* --------------------------------------------------
-   ✅ FINAL USER DOWNLOAD (ADMIN-STYLE)
+   ✅ FINAL USER DOWNLOAD WITH WATERMARK
 -------------------------------------------------- */
 
 export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
   try {
-    // ✅ EXACT SAME SYSTEM AS ADMIN DOWNLOAD
+    // Fetch the PDF
+    const response = await fetch(paper.file_url)
+    if (!response.ok) throw new Error('Failed to fetch PDF')
+    
+    const pdfBytes = await response.arrayBuffer()
+    const pdfDoc = await PDFDocument.load(pdfBytes)
+    const pages = pdfDoc.getPages()
+
+    // Apply watermark to each page
+    for (const page of pages) {
+      const { width, height } = page.getSize()
+
+      // Add header with college name
+      if (containsDevanagari(userInfo.collegeName)) {
+        await addMarathiTextAsImage(page, userInfo.collegeName, width, height)
+      } else {
+        const font = await pdfDoc.embedFont('Helvetica-Bold')
+        let fontSize = 28
+        while (font.widthOfTextAtSize(userInfo.collegeName, fontSize) > width * 0.8 && fontSize > 12) {
+          fontSize -= 2
+        }
+        page.drawText(userInfo.collegeName, {
+          x: (width - font.widthOfTextAtSize(userInfo.collegeName, fontSize)) / 2,
+          y: height - 35,
+          size: fontSize,
+          font,
+          color: rgb(0, 0, 0),
+        })
+      }
+
+      // Add diagonal watermark
+      if (containsDevanagari(userInfo.collegeName)) {
+        await addSingleMarathiWatermark(page, userInfo.collegeName, width, height)
+      } else {
+        await addSingleEnglishWatermark(page, userInfo.collegeName, width, height, pdfDoc)
+      }
+    }
+
+    // Save and download
+    const modifiedPdfBytes = await pdfDoc.save()
+    const blob = new Blob([new Uint8Array(modifiedPdfBytes)], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+
     const link = document.createElement('a')
-    link.href = paper.file_url
+    link.href = url
 
     const examType = getExamTypeLabel(paper.exam_type).replace(/\s+/g, '_')
     link.download =
@@ -186,6 +228,7 @@ export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
 
   } catch (error) {
     console.error('Error downloading PDF:', error)
