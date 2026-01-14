@@ -73,7 +73,7 @@ const containsDevanagari = (text: string): boolean =>
   /[\u0900-\u097F]/.test(text);
 
 /* ------------------------------------------
-   ENGLISH HEADER AUTO RESIZE (CENTER)
+   ENGLISH HEADER AUTO RESIZE
 ------------------------------------------ */
 async function drawAutoSizedEnglishHeader(
   page: any,
@@ -101,7 +101,7 @@ async function drawAutoSizedEnglishHeader(
 }
 
 /* ------------------------------------------
-   MARATHI HEADER AS IMAGE (AUTO RESIZE + CENTER)
+   MARATHI HEADER AS IMAGE
 ------------------------------------------ */
 async function addMarathiTextAsImage(
   page: any,
@@ -153,7 +153,7 @@ async function addMarathiTextAsImage(
 }
 
 /* ------------------------------------------
-   WATERMARK (MARATHI) AUTO RESIZE
+   WATERMARK (MARATHI)
 ------------------------------------------ */
 async function addSingleMarathiWatermark(
   page: any,
@@ -211,7 +211,7 @@ async function addSingleMarathiWatermark(
 }
 
 /* ------------------------------------------
-   WATERMARK (ENGLISH) AUTO RESIZE
+   WATERMARK (ENGLISH)
 ------------------------------------------ */
 async function addSingleEnglishWatermark(
   page: any,
@@ -251,33 +251,30 @@ async function addSingleEnglishWatermark(
 
 export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
   try {
-    // Fetch original PDF
     const existingPdfBytes = await fetch(paper.file_url).then((res) =>
       res.arrayBuffer()
     );
 
-    // Load PDF
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const pages = pdfDoc.getPages();
 
-    // ✅ Line 1 Title = ONLY College Name
     const headerTitle = `${userInfo.collegeName}`;
-
-    // Watermark = College Name
     const watermarkText = `${userInfo.collegeName}`;
 
-    // Apply on all pages
-    for (const page of pages) {
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
       const { width, height } = page.getSize();
 
-      // ✅ Header (College Name Only)
-      if (containsDevanagari(headerTitle)) {
-        await addMarathiTextAsImage(page, headerTitle, width, height);
-      } else {
-        await drawAutoSizedEnglishHeader(page, pdfDoc, headerTitle, width, height);
+      // ✅ Title ONLY on first page
+      if (i === 0) {
+        if (containsDevanagari(headerTitle)) {
+          await addMarathiTextAsImage(page, headerTitle, width, height);
+        } else {
+          await drawAutoSizedEnglishHeader(page, pdfDoc, headerTitle, width, height);
+        }
       }
 
-      // ✅ Watermark
+      // ✅ Watermark on ALL pages
       if (containsDevanagari(watermarkText)) {
         await addSingleMarathiWatermark(page, watermarkText, width, height);
       } else {
@@ -285,10 +282,8 @@ export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
       }
     }
 
-    // Save edited PDF
     const modifiedPdfBytes = await pdfDoc.save();
 
-    // Download
     const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
 
