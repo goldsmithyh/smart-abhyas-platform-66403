@@ -36,10 +36,8 @@ export const getExamTypeDisplayName = (dbName: string, standardCode?: string): s
   }
 
   // ✅ इतर सामान्य mappings (गरजेनुसार ठेवा/काढा)
-  // NOTE: DB मधली Marathi नावे जसच्या तसाच दाखवायची आहेत.
-  // म्हणून "अंतर्गत मूल्यमापन परीक्षा" सारख्या नावांना इथे rename करू नका.
   const map: Record<string, string> = {
-    // Legacy short codes (जर कुठेही अजून stored असतील तर)
+    [normalize("अंतर्गत मूल्यमापन परीक्षा")]: "फेब्रुवारी / मार्च 2022",
     unit1: "Unit Test 1",
     unit2: "Unit Test 2",
     term1: "Term 1 Exam",

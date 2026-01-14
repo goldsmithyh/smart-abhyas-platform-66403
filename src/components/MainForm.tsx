@@ -160,15 +160,6 @@ const MainForm = () => {
         return;
       }
 
-      // Get the exam type name from the selected ID
-      const selectedExamType = examTypes.find(et => et.id === selectedExam);
-      if (!selectedExamType) {
-        console.log('Exam type not found for ID:', selectedExam);
-        setAvailableSubjects([]);
-        setPaperPricing({});
-        return;
-      }
-
       const { data, error } = await supabase
         .from("papers")
         .select(
@@ -179,7 +170,7 @@ const MainForm = () => {
         `,
         )
         .eq("standard", selectedClass)
-        .eq("exam_type", selectedExamType.name)
+        .eq("exam_type", selectedExam)
         .eq("paper_type", paperType)
         .eq("is_active", true);
 
@@ -264,16 +255,13 @@ const MainForm = () => {
       }
 
       // Store papers for later download
-      const selectedExamType = examTypes.find(et => et.id === selectedExam);
-      const examTypeName = selectedExamType?.name || selectedExam;
-      
       const papers = [];
       for (const subject of selectedSubject) {
         const { data, error } = await supabase
           .from("papers")
           .select("*")
           .eq("standard", selectedClass)
-          .eq("exam_type", examTypeName)
+          .eq("exam_type", selectedExam)
           .eq("paper_type", paperType)
           .eq("subject", subject)
           .eq("is_active", true)
@@ -363,15 +351,12 @@ const MainForm = () => {
   const sendPDFsToEmail = async () => {
     if (!selectedSubject.length) return;
 
-    const selectedExamType = examTypes.find(et => et.id === selectedExam);
-    const examTypeName = selectedExamType?.name || selectedExam;
-
     for (const subject of selectedSubject) {
       const { data: papers, error } = await supabase
         .from("papers")
         .select("*")
         .eq("standard", selectedClass)
-        .eq("exam_type", examTypeName)
+        .eq("exam_type", selectedExam)
         .eq("paper_type", paperType)
         .eq("subject", subject)
         .eq("is_active", true)
@@ -384,6 +369,9 @@ const MainForm = () => {
       }
 
       const paper = papers[0] as DatabasePaper;
+
+      const examTypeData = examTypes.find((e) => e.id === selectedExam);
+      const examTypeName = examTypeData?.name || selectedExam;
 
       try {
         const { error: emailError } = await supabase.functions.invoke("send-pdf-email", {
@@ -413,15 +401,12 @@ const MainForm = () => {
   const processDownloads = async () => {
     if (!selectedSubject.length) return;
 
-    const selectedExamType = examTypes.find(et => et.id === selectedExam);
-    const examTypeName = selectedExamType?.name || selectedExam;
-
     for (const subject of selectedSubject) {
       const { data: papers, error } = await supabase
         .from("papers")
         .select("*")
         .eq("standard", selectedClass)
-        .eq("exam_type", examTypeName)
+        .eq("exam_type", selectedExam)
         .eq("paper_type", paperType)
         .eq("subject", subject)
         .eq("is_active", true)
