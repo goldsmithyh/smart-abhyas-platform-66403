@@ -73,7 +73,7 @@ const containsDevanagari = (text: string): boolean =>
   /[\u0900-\u097F]/.test(text);
 
 /* ------------------------------------------
-   AUTO RESIZE HELPER (ENGLISH TEXT)
+   ENGLISH HEADER AUTO RESIZE (CENTER)
 ------------------------------------------ */
 async function drawAutoSizedEnglishHeader(
   page: any,
@@ -84,9 +84,8 @@ async function drawAutoSizedEnglishHeader(
 ) {
   const font = await pdfDoc.embedFont("Helvetica-Bold");
 
-  // Start big, then reduce
-  let fontSize = 18;
-  const maxWidth = pageWidth - 80;
+  let fontSize = 20;
+  const maxWidth = pageWidth - 60;
 
   while (font.widthOfTextAtSize(text, fontSize) > maxWidth && fontSize > 8) {
     fontSize -= 1;
@@ -94,7 +93,7 @@ async function drawAutoSizedEnglishHeader(
 
   page.drawText(text, {
     x: (pageWidth - font.widthOfTextAtSize(text, fontSize)) / 2,
-    y: pageHeight - 30,
+    y: pageHeight - 28,
     size: fontSize,
     font,
     color: rgb(0, 0, 0),
@@ -102,7 +101,7 @@ async function drawAutoSizedEnglishHeader(
 }
 
 /* ------------------------------------------
-   HEADER (MARATHI) AS IMAGE (AUTO RESIZE)
+   MARATHI HEADER AS IMAGE (AUTO RESIZE + CENTER)
 ------------------------------------------ */
 async function addMarathiTextAsImage(
   page: any,
@@ -118,7 +117,7 @@ async function addMarathiTextAsImage(
     canvas.width = 1800;
     canvas.height = 140;
 
-    let fontSize = 55;
+    let fontSize = 60;
     ctx.font = `bold ${fontSize}px "Noto Sans Devanagari", Arial, sans-serif`;
     ctx.fillStyle = "black";
     ctx.textAlign = "center";
@@ -139,13 +138,12 @@ async function addMarathiTextAsImage(
     const pdfDoc = page.doc || page._doc;
     const image = await pdfDoc.embedPng(imageBytes);
 
-    // scale image to fit width automatically
-    const scale = Math.min((pageWidth * 0.92) / canvas.width, 0.7);
+    const scale = Math.min((pageWidth * 0.95) / canvas.width, 0.75);
     const dims = image.scale(scale);
 
     page.drawImage(image, {
       x: (pageWidth - dims.width) / 2,
-      y: pageHeight - 45,
+      y: pageHeight - 48,
       width: dims.width,
       height: dims.height,
     });
@@ -155,7 +153,7 @@ async function addMarathiTextAsImage(
 }
 
 /* ------------------------------------------
-   WATERMARK (MARATHI) AS IMAGE (AUTO RESIZE)
+   WATERMARK (MARATHI) AUTO RESIZE
 ------------------------------------------ */
 async function addSingleMarathiWatermark(
   page: any,
@@ -192,7 +190,6 @@ async function addSingleMarathiWatermark(
     const pdfDoc = page.doc || page._doc;
     const img = await pdfDoc.embedPng(imgBytes);
 
-    // Auto scale watermark to page size
     const targetWidth = pageWidth * 0.75;
     const dims = img.scale(targetWidth / img.width);
 
@@ -254,32 +251,33 @@ async function addSingleEnglishWatermark(
 
 export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
   try {
+    // Fetch original PDF
     const existingPdfBytes = await fetch(paper.file_url).then((res) =>
       res.arrayBuffer()
     );
 
+    // Load PDF
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const pages = pdfDoc.getPages();
 
-    const examTypeLabel = getExamTypeLabel(paper.exam_type);
+    // ✅ Line 1 Title = ONLY College Name
+    const headerTitle = `${userInfo.collegeName}`;
 
-    // ✅ Title now includes College Name
-    const headerTitle = `${userInfo.collegeName} | ${paper.standard} | ${paper.subject} | ${examTypeLabel} | ${paper.paper_type.toUpperCase()}`;
+    // Watermark = College Name
+    const watermarkText = `${userInfo.collegeName}`;
 
-    // Watermark (College Name)
-    const watermarkText = userInfo.collegeName;
-
+    // Apply on all pages
     for (const page of pages) {
       const { width, height } = page.getSize();
 
-      // ✅ Title/Header (auto resize)
+      // ✅ Header (College Name Only)
       if (containsDevanagari(headerTitle)) {
         await addMarathiTextAsImage(page, headerTitle, width, height);
       } else {
         await drawAutoSizedEnglishHeader(page, pdfDoc, headerTitle, width, height);
       }
 
-      // ✅ Watermark (auto resize)
+      // ✅ Watermark
       if (containsDevanagari(watermarkText)) {
         await addSingleMarathiWatermark(page, watermarkText, width, height);
       } else {
@@ -287,11 +285,14 @@ export const downloadActualPDF = async (paper: Paper, userInfo: UserInfo) => {
       }
     }
 
+    // Save edited PDF
     const modifiedPdfBytes = await pdfDoc.save();
 
+    // Download
     const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
 
+    const examTypeLabel = getExamTypeLabel(paper.exam_type);
     const examTypeFile = examTypeLabel.replace(/\s+/g, "_");
 
     const downloadName =
