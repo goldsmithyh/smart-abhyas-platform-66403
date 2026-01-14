@@ -16,9 +16,9 @@ import { getExamTypeDisplayName } from "@/utils/examTypeMapping";
 interface Paper {
   id: string;
   title: string;
-  paper_type: string;
-  standard: string;
-  exam_type: string;
+  paper_type: 'question' | 'answer';
+  standard: '10th' | '11th' | '12th';
+  exam_type: 'unit1' | 'term1' | 'unit2' | 'prelim1' | 'prelim2' | 'prelim3' | 'term2' | 'internal' | 'chapter' | 'final';
   subject: string;
   file_url: string;
   file_name: string;
@@ -105,17 +105,9 @@ const AdminMiniWebsite = () => {
     loadExamTypes();
   }, [standard]);
 
-  // Fetch subjects when standard or examType changes
   useEffect(() => {
     if (standard && examType) {
-      // Reset selections when criteria change
-      setSelectedSubjects([]);
-      setPapers([]);
       fetchSubjects();
-    } else {
-      setSubjects([]);
-      setSelectedSubjects([]);
-      setPapers([]);
     }
   }, [standard, examType]);
 
@@ -127,20 +119,13 @@ const AdminMiniWebsite = () => {
 
   const fetchSubjects = async () => {
     try {
-      // Get the exam type name from the selected ID
-      const selectedExamType = examTypes.find(et => et.id === examType);
-      if (!selectedExamType) {
-        console.log('Exam type not found for ID:', examType);
-        return;
-      }
-
-      console.log('Fetching subjects with criteria:', { standard, examTypeName: selectedExamType.name });
+      console.log('Fetching subjects with criteria:', { standard, examType });
 
       const { data, error } = await supabase
         .from('papers')
         .select('subject')
         .eq('standard', standard)
-        .eq('exam_type', selectedExamType.name)
+        .eq('exam_type', examType)
         .eq('is_active', true);
 
       console.log('Subjects query result:', { data, error });
@@ -150,6 +135,8 @@ const AdminMiniWebsite = () => {
       const uniqueSubjects = [...new Set(data?.map(paper => paper.subject) || [])];
       console.log('Unique subjects found:', uniqueSubjects);
       setSubjects(uniqueSubjects);
+      setSelectedSubjects([]);
+      setPapers([]);
     } catch (error) {
       console.error('Error fetching subjects:', error);
       toast({
@@ -162,16 +149,9 @@ const AdminMiniWebsite = () => {
 
   const fetchPapers = async () => {
     try {
-      // Get the exam type name from the selected ID
-      const selectedExamType = examTypes.find(et => et.id === examType);
-      if (!selectedExamType) {
-        console.log('Exam type not found for ID:', examType);
-        return;
-      }
-
       console.log('Fetching papers with criteria:', {
         standard,
-        examTypeName: selectedExamType.name,
+        examType,
         selectedSubjects
       });
 
@@ -179,7 +159,7 @@ const AdminMiniWebsite = () => {
         .from('papers')
         .select('*')
         .eq('standard', standard)
-        .eq('exam_type', selectedExamType.name)
+        .eq('exam_type', examType)
         .in('subject', selectedSubjects)
         .eq('is_active', true);
 
@@ -187,16 +167,12 @@ const AdminMiniWebsite = () => {
 
       if (error) throw error;
       
-      // Map database results to Paper interface
-      const typedPapers: Paper[] = (data || []).map(paper => ({
-        id: paper.id,
-        title: paper.title,
-        paper_type: paper.paper_type,
-        standard: paper.standard,
-        exam_type: paper.exam_type,
-        subject: paper.subject,
-        file_url: paper.file_url,
-        file_name: paper.file_name,
+      // Type assertion to ensure compatibility with our Paper interface
+      const typedPapers = (data || []).map(paper => ({
+        ...paper,
+        paper_type: paper.paper_type as 'question' | 'answer',
+        standard: paper.standard as '10th' | '11th' | '12th',
+        exam_type: paper.exam_type as 'unit1' | 'term1' | 'unit2' | 'prelim1' | 'prelim2' | 'prelim3' | 'term2' | 'internal' | 'chapter' | 'final'
       }));
       
       console.log('Typed papers:', typedPapers);
